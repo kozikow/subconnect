@@ -6,6 +6,7 @@ App.ApplicationView = Ember.View.extend({
     this.get("controller").drawGraph();
   }
 });
+
 App.ApplicationController = Ember.Controller.extend({
   algorithm : undefined,
   in_algorithm : undefined,
@@ -22,11 +23,21 @@ App.ApplicationController = Ember.Controller.extend({
   isSlyce : function() {
     return (this.get("algorithm") == "slyce")
   }.property("algorithm"),
+  isAlgo : function() {
+    return this.get("in_algorithm");
+  }.property("in_algorithm"),
 
-  resetAlgorithms : function() {
+  resetAlgorithm : function() {
     this.set("removed_nodes", []);
+    this.set("in_algorith", false);
   }.observes("algorithm"),
 
+  startAlgorithm : function() {
+    this.set("in_algorithm", true);
+  },
+  stopAlgorithm : function() {
+    this.set("in_algorithm", false);
+  },
   chooseAlgorithmReverse: function() {
     this.set("algorithm", "reverse");
   },
@@ -35,16 +46,16 @@ App.ApplicationController = Ember.Controller.extend({
   },
 
   addNode : function(event) {
-    var nodes = this.get("nodes"),
-        links = this.get("links"),
-        point = d3.mouse(event),
-        node = {x: point[0], y: point[1]},
-        n = nodes.push(node);
+    var nodes = this.get("nodes");
+    var links = this.get("links");
+    var point = d3.mouse(event);
+    var node = {x: point[0], y: point[1]};
+    var n = nodes.push(node);
 
     // add links to any nearby nodes
     nodes.forEach(function(target) {
-      var x = target.x - node.x,
-          y = target.y - node.y;
+      var x = target.x - node.x;
+      var y = target.y - node.y;
       if (Math.sqrt(x * x + y * y) < 100) {
           links.push({source: node, target: target});
       }
@@ -56,6 +67,7 @@ App.ApplicationController = Ember.Controller.extend({
 
   forceTick : function() {
     var vis = this.get("vis");
+    var removed_nodes = this.get("removed_nodes");
     vis.selectAll("line.link")
         .attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
@@ -98,12 +110,13 @@ App.ApplicationController = Ember.Controller.extend({
        })
   },
 
-  restart : function() {
-    var force = this.get("force"),
-        vis = this.get("vis"),
-        links = this.get("links"),
-        removed_nodes = this.get("removed_nodes"),
-        nodes = this.get("nodes");
+  redrawGraph : function() {
+    var force = this.get("force");
+    var vis = this.get("vis");
+    var links = this.get("links");
+    var removed_nodes = this.get("removed_nodes");
+    var nodes = this.get("nodes");
+
     force.start();
     vis.selectAll("line.link").data(links)
     .enter().insert("line", "circle.node")
@@ -126,6 +139,7 @@ App.ApplicationController = Ember.Controller.extend({
       .style("fill","black")
       .style("font-size", function(d) { return "20px"; })
       .call(force.drag);
+    this.forceTick();
   }.observes("algorithm", "num_nodes"),
 
   setCursor : function() {
@@ -147,14 +161,14 @@ App.ApplicationController = Ember.Controller.extend({
   }.observes("in_algorithm"),
 
   drawGraph : function() {
-    var self = this,
-        width = 960,
-        height = 500,
-        fill = d3.scale.category20(),
-        nodes = this.get("nodes"),
-        links = this.get("links"),
-        vis = this.get("vis"),
-        force = this.get("force");
+    var self = this;
+    var width = 960;
+    var height = 500;
+    var fill = d3.scale.category20();
+    var nodes = this.get("nodes");
+    var links = this.get("links");
+    var vis = this.get("vis");
+    var force = this.get("force");
 
     vis = d3.select("#chart").append("svg")
       .attr("width", width)
@@ -189,18 +203,24 @@ App.ApplicationController = Ember.Controller.extend({
 });
 
 App.Router = Ember.Router.extend({
-	enableLogging: true,
-  	root: Ember.Route.extend({
-      chooseAlgorithmReverse : function(router, context) {
-        router.get('applicationController').chooseAlgorithmReverse();
-      },
-      chooseAlgorithmSlyce : function(router, context) {
-        router.get('applicationController').chooseAlgorithmSlyce();
-      },
-    	index: Ember.Route.extend({
-    		route: '/',
-    	})
-  	})
+  enableLogging: true,
+  root: Ember.Route.extend({
+    chooseAlgorithmReverse : function(router) {
+      router.get('applicationController').chooseAlgorithmReverse();
+    },
+    chooseAlgorithmSlyce : function(router) {
+      router.get('applicationController').chooseAlgorithmSlyce();
+    },
+    startAlgorithm : function(router) {
+      router.get('applicationController').startAlgorithm();
+    },
+    stopAlgorithm : function() {
+      router.get('applicationController').stopAlgorithm();
+    },
+    index: Ember.Route.extend({
+      route: '/',
+    })
+  })
 });
 
 

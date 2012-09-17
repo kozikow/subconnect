@@ -56,17 +56,25 @@
               <li {{bindAttr class="isSlyce:active"}}>
                 <a href="#" {{action chooseAlgorithmSlyce }}> SlyCE </a>
               </li>
+              
               <li class="nav-header">Controls</li>
               <li class="active"><a href="#">Create graph</a></li>
-              <li><a href="#">Start algorithm</a></li>
-              <li class="disabled"><a href="#">Next step</a></li>
+              <li {{bindAttr class="in_algorithm:disabled"}}>
+                <a href="#">Start algorithm</a>
+              </li>
+              <li {{bindAttr class="in_algorithm::disabled"}}><a href="#">Next step</a></li>
             </ul>
           </div><!--/.well -->
         </div><!--/span-->
         <div class="span9">
           <div class="hero-unit">
             <h1>Graph</h1>
-            <p> Press anywhere to add new nodes! You also can drag nodes you have created. </p>
+            {{#if in_algorithm}}
+              <p> Scroll down to analyze state of your algorithm. </p>
+            {{else}}
+              <p> Press anywhere to add new nodes! You can drag nodes you have created. </p>
+            {{/if}}
+            
             <div id="chart">
             </div>
           </div>

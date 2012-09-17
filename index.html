@@ -76,7 +76,11 @@
             {{#if in_algorithm}}
               <p> Scroll down to analyze state of your algorithm. </p>
             {{else}}
-              <p> Press anywhere to add new nodes! To start the algorithm you need to create nonempty connected graph. </p>
+              <h3> Press anywhere to add new nodes. Nodes placed closeby will be connected by an edge. </h3>		
+	      {{#if canStartAlgorithm}}
+	      {{else}}
+	          <h4>To start the algorithm you need to create nonempty connected graph. </h4>
+	      {{/if}}
             {{/if}}
             
             <div id="chart">

@@ -32,6 +32,7 @@ App.ApplicationController = Ember.Controller.extend({
   chooseAlgorithmSlyce: function() {
     this.set("algorithm", "slyce");
   },
+
   add_node : function(event) {
     var nodes = this.get("nodes"),
         links = this.get("links"),
@@ -114,7 +115,7 @@ App.ApplicationController = Ember.Controller.extend({
         }
        })
       .call(force.drag);
-  }.observes("algorithm", "nodes"),
+  }.observes("algorithm", "num_nodes"),
 
   drawGraph : function() {
     var self = this,
@@ -164,14 +165,14 @@ App.ApplicationController = Ember.Controller.extend({
           }
         });
 
-    vis.selectAll("text.node")
+      vis.selectAll("text.node")
         .attr("x", function(d) { return d.x - 5; })
         .attr("y", function(d) { return d.y + 5; });
 
-    vis.selectAll("circle.node")
+      vis.selectAll("circle.node")
         .attr("cx", function(d) { return d.x; })
         .attr("cy", function(d) { return d.y; });
-  });
+    });
 
     vis.on("mousemove", function() {
       cursor.attr("transform", "translate(" + d3.mouse(this) + ")");

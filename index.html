@@ -76,7 +76,7 @@
             {{#if in_algorithm}}
               <p> Scroll down to analyze state of your algorithm. </p>
             {{else}}
-              <p> Press anywhere to add new nodes! You can drag nodes you have created. </p>
+              <p> Press anywhere to add new nodes! To start the algorithm you need to create nonempty connected graph. </p>
             {{/if}}
             
             <div id="chart">
@@ -107,7 +107,17 @@
                 {{/if}}
               </div>
               <div class="tab-pane" id="tab4">
-                <p>Howdy, I'm in Section 4.</p>
+                {{#if in_algorithm}}
+                  <p> Number of traversed subgraphs: {{num_enumerated}} </p>
+                  {{#if isReverse}}
+                    State of Reverse
+                  {{/if}}
+                  {{#if isSlyce}}
+                    State of Slyce
+                  {{/if}}
+                {{else}}
+                  You need to start the algorithm first!
+                {{/if}}
               </div>
               <div class="tab-pane" id="tab5">
                 Algorithms
@@ -133,7 +143,6 @@
   <script src="js/libs/ember-1.0.pre.min.js"></script>
   <script type="text/javascript" src="js/bootstrap.js"></script>
   <script type="text/javascript" src="js/d3.v2.js"></script>
-  <script type="text/javascript" src="js/force.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

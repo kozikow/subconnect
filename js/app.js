@@ -19,6 +19,9 @@ App.ApplicationController = Ember.Controller.extend({
   vis : undefined,
   num_nodes : 0,
   removed_nodes : [0, 2, 3],
+  num_enumerated : 0,
+  reverse_stack : [],
+  reverse_min : undefined,
   isReverse : function() {
     return (this.get("algorithm") == "reverse")
   }.property("algorithm"),
@@ -36,12 +39,16 @@ App.ApplicationController = Ember.Controller.extend({
   resetAlgorithm : function() {
     this.set("removed_nodes", []);
     this.set("in_algorithm", false);
-    this.set("step_description", "You need to start the algorithm first!")
   }.observes("algorithm"),
 
   startAlgorithm : function() {
     if(this.get("graphNotEmpty")) {
-      this.set("in_algorithm", true);
+      if(!this.get("in_algorithm")) {
+        this.set("num_enumerated", 1);
+        this.set("reverse_min", this.get("num_nodes")+1);
+        this.set("reverse_stack", [])
+        this.set("in_algorithm", true);
+      }
     }
   },
   stopAlgorithm : function() {
@@ -49,16 +56,35 @@ App.ApplicationController = Ember.Controller.extend({
   },
   stepAlgorithm : function() {
     if(this.get("in_algorithm")) {
+      if(this.get("isReverse")) {
+        /*var reverse_min = this.get("reverse_min");
+        var removed_nodes = this.get("removed_nodes");
+        var reverse_stack = this.get("reverse_stack");
+        for(var i=reverse_min-1; i>=0; i--) {
+          if($.inArray(i, removed_nodes) == -1) {
+            removed_nodes.append(i);
+            reverse_stack.append({
+              'removed' : i,
+              'removed_son' : i
+            });
+          }
+        }*/
+      }
+      if(this.get("isSlyce")) {
+
+      }
       alert('krok!');
     }
   },
   chooseAlgorithmReverse: function() {
     this.set("algorithm", "reverse");
-    this.set("step_description", "We are about to start Reverse Search algorithm.");
+    this.set("step_description", 
+      "We have started the reverse Search algorithm. First subgraph, which we are enumerating "+
+      "is whole graph.");
   },
   chooseAlgorithmSlyce: function() {
     this.set("algorithm", "slyce");
-    this.set("step_description", "We are about to start SlyCE algorithm.");
+    this.set("step_description", "We have started the SlyCE algorithm.");
   },
 
   addNode : function(event) {
@@ -223,7 +249,7 @@ App.ApplicationController = Ember.Controller.extend({
     this.set("vis", vis),
     this.set("force", force);
     this.set("in_algorithm", false)
-    this.set("algorithm", "reverse")
+    this.chooseAlgorithmReverse();
   }
 });
 

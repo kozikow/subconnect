@@ -1,5 +1,11 @@
 var App = Em.Application.create();
 
+if(!Array.prototype.last) {
+    Array.prototype.last = function() {
+        return this[this.length - 1];
+    }
+}
+
 App.ApplicationView = Ember.View.extend({
   templateName: 'application',
   didInsertElement : function() {
@@ -17,11 +23,11 @@ App.ApplicationController = Ember.Controller.extend({
   nodes : [],
   links : [],
   vis : undefined,
-  num_nodes : 0,
-  removed_nodes : [0, 2, 3],
+  num_nodes: 0,
+  removed_nodes: [],
+  last_removed: 0,
   num_enumerated : 0,
-  reverse_stack : [],
-  reverse_min : undefined,
+  traversed_subgraphs : [],
   isReverse : function() {
     return (this.get("algorithm") == "reverse")
   }.property("algorithm"),
@@ -44,36 +50,98 @@ App.ApplicationController = Ember.Controller.extend({
   startAlgorithm : function() {
     if(this.get("graphNotEmpty")) {
       if(!this.get("in_algorithm")) {
+        var num_nodes = this.get("num_nodes");
         this.set("num_enumerated", 1);
-        this.set("reverse_min", this.get("num_nodes")+1);
-        this.set("reverse_stack", [])
+        this.set("traversed_subgraphs", [])
+        this.set("last_removed", num_nodes);
         this.set("in_algorithm", true);
       }
     }
   },
   stopAlgorithm : function() {
-    this.set("in_algorithm", false);
+    this.resetAlgorithm();
   },
+  isGraphConnected: function() {
+    return true;
+  },
+  addTraversedSubgraph: function() {
+    var subgraph = [];
+    var removed = this.get("removed_nodes");
+    var num_nodes = this.get("num_nodes");
+    var traversed_subgraphs = this.get("traversed_subgraphs");
+    for(var i=0; i<num_nodes; i++){
+      if($.inArray(i, removed) == -1)
+        supgraph.push(i);
+    }
+    traversed_subgraphs.push({
+      'subgraph' : subgraph
+    });
+    this.set("traversed_subgraphs", traversed_subgraphs);
+  },
+  stepReverseAlgorithm: function() {
+    var removed_nodes = this.get("removed_nodes");    
+    var reverse_stack = this.get("reverse_stack");
+    var iter_start = this.get("last_removed") - 1;
+    for(var i=iter_start; i>=0; i--) {
+      removed_nodes.push(i);
+      if(this.isGraphConnected()) {
+        this.set("step_description", 
+          "I have tried to remove nodes starting from " +
+          iter_start.toString() +
+          " iterating down to 0. First node, which after removal didn't " +
+          "make graph disconnected was the node " +
+          i.toString() +
+          ", therefore I am removing this node. Next time, when I " +
+          " will be back in this state I will start iteration from " +
+          (i-1).toString()
+        );
+        this.addTraversedSubgraph();
+        this.set("last_removed", i)
+        this.set("removed_nodes", removed_nodes);
+        return;
+      }
+      else {
+        removed_nodes.pop();
+      }
+    }
+    var step_description;
+    if(iter_start < 0) {
+      step_description = "There were no more nodes to iterate from this state. ";
+    }
+    else {
+      "step_description" =
+        "I iterated all nodes from " +
+        iter_start.toString() +
+        " down to 0. Sadly, removal of each one disconnected the graph. ";
+    }
+    if(removed_nodes.length == 0) {
+      this.set("step_description", "Algorithm have finished.")
+    }
+    else {
+      var removed = removed_nodes.last();
+      removed_nodes.pop();
+      step_description += "I am adding " + removed.toString() + " back to graph. " +
+        "This will not generate new subgraph." +
+        "In next step I will try removing nodes starting from " + (removed-1).toString()
+
+      this.set("step_description", step_description);
+      this.set("removed_nodes", removed_nodes);
+      this.set("last_removed", removed);
+    }
+  },
+
+  stepSlyceAlgorithm: function() {
+    alert('slyce step!');
+  },
+
   stepAlgorithm : function() {
     if(this.get("in_algorithm")) {
       if(this.get("isReverse")) {
-        /*var reverse_min = this.get("reverse_min");
-        var removed_nodes = this.get("removed_nodes");
-        var reverse_stack = this.get("reverse_stack");
-        for(var i=reverse_min-1; i>=0; i--) {
-          if($.inArray(i, removed_nodes) == -1) {
-            removed_nodes.append(i);
-            reverse_stack.append({
-              'removed' : i,
-              'removed_son' : i
-            });
-          }
-        }*/
+        this.stepReverseAlgorithm();
       }
       if(this.get("isSlyce")) {
-
+        this.stepSlyceAlgorithm();
       }
-      alert('krok!');
     }
   },
   chooseAlgorithmReverse: function() {
@@ -152,7 +220,7 @@ App.ApplicationController = Ember.Controller.extend({
           return 0.4;
         }
        })
-  },
+  }.observes("step_description", "in_algorithm"),
 
   redrawGraph : function() {
     var force = this.get("force");

@@ -61,7 +61,7 @@
               <li {{bindAttr class="in_algorithm::active"}}>
                 <a href="#" {{action stopAlgorithm}} >Create graph</a>
               </li>
-              <li {{bindAttr class="in_algorithm:active"}}>
+              <li {{bindAttr class="in_algorithm:active graphNotEmpty::disabled"}}>
                 <a href="#" {{action startAlgorithm}} >Start algorithm</a>
               </li>
               <li {{bindAttr class="in_algorithm::disabled"}}>
@@ -86,26 +86,31 @@
           <div class="tabbable"> <!-- Only required for left/right tabs -->
             <ul class="nav nav-pills">
               <li class="active"><a href="#tab1" data-toggle="tab">Algorithm Description</a></li>
-              <li><a href="#tab2" data-toggle="tab">Proof</a></li>
               <li><a href="#tab3" data-toggle="tab">Description of current step</a></li>
               <li><a href="#tab4" data-toggle="tab">Current State</a></li>
               <li><a href="#tab5" data-toggle="tab">Comparision between algorithms</a></li>
             </ul> 
             <div class="tab-content">
               <div class="tab-pane active" id="tab1">
-                <p>I'm in Section 1.</p>
-              </div>
-              <div class="tab-pane" id="tab2">
-                <p>Howdy, I'm in Section 2.</p>
+                {{#if isReverse}}
+                  Description of Reverse
+                {{/if}}
+                {{#if isSlyce}}
+                  Description of Slyce
+                {{/if}}
               </div>
               <div class="tab-pane" id="tab3">
-                <p>Howdy, I'm in Section 3.</p>
+                {{#if in_algorithm}}
+                  {{ step_description }}
+                {{else}}
+                  You need to start the algorithm first!
+                {{/if}}
               </div>
               <div class="tab-pane" id="tab4">
                 <p>Howdy, I'm in Section 4.</p>
               </div>
               <div class="tab-pane" id="tab5">
-                <p>Howdy, I'm in Section 5.</p>
+                Algorithms
               </div>
             </div>
           </div>

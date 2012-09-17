@@ -10,6 +10,7 @@ App.ApplicationView = Ember.View.extend({
 App.ApplicationController = Ember.Controller.extend({
   algorithm : undefined,
   in_algorithm : undefined,
+  step_description : undefined,
 
   cursor : undefined,
   force : undefined,
@@ -28,13 +29,20 @@ App.ApplicationController = Ember.Controller.extend({
     return this.get("in_algorithm");
   }.property("in_algorithm"),
 
+  graphNotEmpty : function() {
+    return this.get("num_nodes") > 0;
+  }.property("num_nodes"),
+
   resetAlgorithm : function() {
     this.set("removed_nodes", []);
     this.set("in_algorithm", false);
+    this.set("step_description", "You need to start the algorithm first!")
   }.observes("algorithm"),
 
   startAlgorithm : function() {
-    this.set("in_algorithm", true);
+    if(this.get("graphNotEmpty")) {
+      this.set("in_algorithm", true);
+    }
   },
   stopAlgorithm : function() {
     this.set("in_algorithm", false);
@@ -46,9 +54,11 @@ App.ApplicationController = Ember.Controller.extend({
   },
   chooseAlgorithmReverse: function() {
     this.set("algorithm", "reverse");
+    this.set("step_description", "We are about to start Reverse Search algorithm.");
   },
   chooseAlgorithmSlyce: function() {
     this.set("algorithm", "slyce");
+    this.set("step_description", "We are about to start SlyCE algorithm.");
   },
 
   addNode : function(event) {

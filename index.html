@@ -51,18 +51,22 @@
             <ul class="nav nav-list">
               <li class="nav-header">Chosen Algorithm</li>
               <li {{bindAttr class="isReverse:active"}}>
-                <a href="#" {{action chooseAlgorithmReverse }}> Reverse Search </a>
+                <a href="#" {{action chooseAlgorithmReverse}}> Reverse Search </a>
               </li>
               <li {{bindAttr class="isSlyce:active"}}>
-                <a href="#" {{action chooseAlgorithmSlyce }}> SlyCE </a>
+                <a href="#" {{action chooseAlgorithmSlyce}}> SlyCE </a>
               </li>
-              
+
               <li class="nav-header">Controls</li>
-              <li class="active"><a href="#">Create graph</a></li>
-              <li {{bindAttr class="in_algorithm:disabled"}}>
-                <a href="#">Start algorithm</a>
+              <li {{bindAttr class="in_algorithm::active"}}>
+                <a href="#" {{action stopAlgorithm}} >Create graph</a>
               </li>
-              <li {{bindAttr class="in_algorithm::disabled"}}><a href="#">Next step</a></li>
+              <li {{bindAttr class="in_algorithm:active"}}>
+                <a href="#" {{action startAlgorithm}} >Start algorithm</a>
+              </li>
+              <li {{bindAttr class="in_algorithm::disabled"}}>
+                <a href="#" {{action stepAlgorithm}}>Next step</a>
+              </li>
             </ul>
           </div><!--/.well -->
         </div><!--/span-->

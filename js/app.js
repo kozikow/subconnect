@@ -11,6 +11,7 @@ App.ApplicationController = Ember.Controller.extend({
   algorithm : undefined,
   in_algorithm : undefined,
 
+  cursor : undefined,
   force : undefined,
   nodes : [],
   links : [],
@@ -29,7 +30,7 @@ App.ApplicationController = Ember.Controller.extend({
 
   resetAlgorithm : function() {
     this.set("removed_nodes", []);
-    this.set("in_algorith", false);
+    this.set("in_algorithm", false);
   }.observes("algorithm"),
 
   startAlgorithm : function() {
@@ -37,6 +38,11 @@ App.ApplicationController = Ember.Controller.extend({
   },
   stopAlgorithm : function() {
     this.set("in_algorithm", false);
+  },
+  stepAlgorithm : function() {
+    if(in_algorithm) {
+      alert('krok!');
+    }
   },
   chooseAlgorithmReverse: function() {
     this.set("algorithm", "reverse");
@@ -46,23 +52,26 @@ App.ApplicationController = Ember.Controller.extend({
   },
 
   addNode : function(event) {
-    var nodes = this.get("nodes");
-    var links = this.get("links");
-    var point = d3.mouse(event);
-    var node = {x: point[0], y: point[1]};
-    var n = nodes.push(node);
+    var in_algorithm = this.get("in_algorithm");
+    if(!in_algorithm) {
+      var nodes = this.get("nodes");
+      var links = this.get("links");
+      var point = d3.mouse(event);
+      var node = {x: point[0], y: point[1]};
+      var n = nodes.push(node);
 
-    // add links to any nearby nodes
-    nodes.forEach(function(target) {
-      var x = target.x - node.x;
-      var y = target.y - node.y;
-      if (Math.sqrt(x * x + y * y) < 100) {
-          links.push({source: node, target: target});
-      }
-    });
-    this.set("num_nodes", this.get("num_nodes") + 1);
-    this.set("nodes", nodes);
-    this.set("links", links);
+      // add links to any nearby nodes
+      nodes.forEach(function(target) {
+        var x = target.x - node.x;
+        var y = target.y - node.y;
+        if (Math.sqrt(x * x + y * y) < 100) {
+            links.push({source: node, target: target});
+        }
+      });
+      this.set("num_nodes", this.get("num_nodes") + 1);
+      this.set("nodes", nodes);
+      this.set("links", links);
+    }
   },
 
   forceTick : function() {
@@ -145,18 +154,25 @@ App.ApplicationController = Ember.Controller.extend({
   setCursor : function() {
     var vis = this.get("vis");
     var in_algorithm = this.get("in_algorithm");
+    var cursor = this.get("cursor");
     if(!in_algorithm) {
-      var cursor = vis.append("circle")
-      .attr("r", 100)
-      .attr("transform", "translate(-100,-100)")
-      .attr("class", "cursor");
+      if(!cursor) {
+        cursor = vis.append("circle")
+          .attr("r", 100)
+          .attr("transform", "translate(-100,-100)")
+          .attr("class", "cursor");
 
-      vis.on("mousemove", function() {
-        cursor.attr("transform", "translate(" + d3.mouse(this) + ")");
-      });
+        vis.on("mousemove", function() {
+          cursor.attr("transform", "translate(" + d3.mouse(this) + ")");
+        });
+        this.set("cursor", cursor)
+      }
+      else {
+        cursor.attr("visibility", "visible")
+      }
     }
     else {
-      vis.selectAll("circle").remove();
+      cursor.attr("visibility", "hidden")
     }
   }.observes("in_algorithm"),
 
@@ -214,8 +230,11 @@ App.Router = Ember.Router.extend({
     startAlgorithm : function(router) {
       router.get('applicationController').startAlgorithm();
     },
-    stopAlgorithm : function() {
+    stopAlgorithm : function(router) {
       router.get('applicationController').stopAlgorithm();
+    },
+    stepAlgorithm : function(router) {
+      router.get('applicationController').stepAlgorithm();
     },
     index: Ember.Route.extend({
       route: '/',

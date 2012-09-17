@@ -26,6 +26,7 @@ App.ApplicationController = Ember.Controller.extend({
   removed_nodes: [],
   last_removed: 0,
   num_enumerated : 0,
+  unique_subgraph : true,
   dfs_flag : 0,
   traversed_subgraphs : [],
   isReverse : function() {
@@ -45,6 +46,7 @@ App.ApplicationController = Ember.Controller.extend({
   resetAlgorithm : function() {
     this.set("removed_nodes", []);
     this.set("in_algorithm", false);
+    this.set("unique_subgraph", true);
     $("#step_button").popover('hide');
   }.observes("algorithm"),
 
@@ -176,12 +178,14 @@ App.ApplicationController = Ember.Controller.extend({
         this.addTraversedSubgraph();
         this.set("last_removed", i)
         this.set("removed_nodes", removed_nodes);
+	this.set("unique_subgraph", true);
         return;
       }
       else {
         removed_nodes.pop();
       }
     }
+    this.set("unique_subgraph", false);
     var step_description;
     if(iter_start < 0) {
       step_description = "There were no more nodes to iterate from this state. ";
@@ -288,6 +292,11 @@ App.ApplicationController = Ember.Controller.extend({
         }
        });
 
+    var node_color = "#000";
+    if(this.get("unique_subgraph")) {
+       node_color = "#00B2EE";
+    } 
+
     vis.selectAll("circle.node")
       .attr("cx", function(d) { return d.x; })
       .attr("cy", function(d) { return d.y; })
@@ -299,6 +308,7 @@ App.ApplicationController = Ember.Controller.extend({
           return 0.4;
         }
        })
+      .style("fill", node_color)
   }.observes("step_description", "in_algorithm"),
 
   redrawGraph : function() {
@@ -331,7 +341,7 @@ App.ApplicationController = Ember.Controller.extend({
       .style("font-size", function(d) { return "20px"; })
       .call(force.drag);
     this.forceTick();
-  }.observes("algorithm", "num_nodes"),
+  }.observes("algorithm", "num_nodes", "unique_subgraph"),
 
   setCursor : function() {
     var vis = this.get("vis");

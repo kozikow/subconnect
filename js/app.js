@@ -17,7 +17,6 @@ App.ApplicationController = Ember.Controller.extend({
   algorithm : undefined,
   in_algorithm : undefined,
   step_description : undefined,
-
   cursor : undefined,
   force : undefined,
   nodes : [],
@@ -27,6 +26,7 @@ App.ApplicationController = Ember.Controller.extend({
   removed_nodes: [],
   last_removed: 0,
   num_enumerated : 0,
+  dfs_flag : 0,
   traversed_subgraphs : [],
   isReverse : function() {
     return (this.get("algorithm") == "reverse")
@@ -45,14 +45,18 @@ App.ApplicationController = Ember.Controller.extend({
   resetAlgorithm : function() {
     this.set("removed_nodes", []);
     this.set("in_algorithm", false);
+    $("#step_button").popover('hide');
   }.observes("algorithm"),
 
   startAlgorithm : function() {
-    if(this.get("graphNotEmpty")) {
+    if(this.get("canStartAlgorithm")) {
       if(!this.get("in_algorithm")) {
+	$("#step_button").popover('show');
+
         var num_nodes = this.get("num_nodes");
         this.set("num_enumerated", 1);
         this.set("traversed_subgraphs", [])
+        this.addTraversedSubgraph();
         this.set("last_removed", num_nodes);
         this.set("in_algorithm", true);
       }
@@ -61,30 +65,104 @@ App.ApplicationController = Ember.Controller.extend({
   stopAlgorithm : function() {
     this.resetAlgorithm();
   },
-  isGraphConnected: function() {
+  isConnectedDFS: function() {
+    var num_nodes = this.get("num_nodes");
+    var removed_nodes = this.get("removed_nodes");
+    var links = this.get("links");
+    var num_set = [];
+
+    var min_found = this.get("num_nodes");
+
+    for(var i=0; i<num_nodes; i++) {
+      num_set.push(i);
+    }
+    for(var i=0; i<num_nodes; i++) {
+      for(var j=0; j<links.length; j++) {
+        var source = links[j].source.index;
+        var target = links[j].target.index;
+        if($.inArray(source, removed_nodes)==-1 && $.inArray(target, removed_nodes)==-1) {
+          num_set[source] = num_set[source] < num_set[target] ? num_set[source] : num_set[target];
+          num_set[target] = num_set[source];
+          min_found = min_found < num_set[target] ? min_found : num_set[target];
+        }
+      }
+    }
+    for(var i=0; i<num_nodes; i++) {
+      if($.inArray(i, removed_nodes) == -1) {
+        if(num_set[i] != min_found) {
+          return false;
+        }
+      }
+    }
     return true;
   },
+  isGraphConnected: function() {
+    return this.isConnectedDFS();
+  }.property("num_nodes", "num_enumerated", "dfs_flag"),
+  canStartAlgorithm: function() {
+    if(!this.get("graphNotEmpty"))
+      return false;
+    if(!this.get("isGraphConnected"))
+      return false;
+    return true;
+  }.property("in_algorithm","isGraphConnected"),
   addTraversedSubgraph: function() {
     var subgraph = [];
     var removed = this.get("removed_nodes");
     var num_nodes = this.get("num_nodes");
     var traversed_subgraphs = this.get("traversed_subgraphs");
-    for(var i=0; i<num_nodes; i++){
-      if($.inArray(i, removed) == -1)
-        supgraph.push(i);
+    var num_enumerated = this.get("num_enumerated");
+    for(var i=0; i<num_nodes; i++) {
+      if($.inArray(i, removed) == -1) {
+        subgraph.push({
+          'index': i
+        });
+      }
     }
     traversed_subgraphs.push({
-      'subgraph' : subgraph
+      'subgraph': subgraph
     });
     this.set("traversed_subgraphs", traversed_subgraphs);
+    this.set("num_enumerated", num_enumerated+1)
   },
+  traversedHTML: function() {
+    var traversed_subgraphs = this.get("traversed_subgraphs");
+    var ret_str = "<h3> Traversed Subraphs: </h3>";
+    for(var i=0; i<traversed_subgraphs.length; i++) {
+      var subgraph = traversed_subgraphs[i].subgraph;
+      ret_str += "<h4>";
+      if(subgraph.length == 0) {
+        ret_str += "Empty set"
+      }
+      for(var j=0; j<subgraph.length; j++) {
+        ret_str += (subgraph[j].index).toString() + " ";
+      }
+      ret_str += "</h4>"
+    }
+    return new Handlebars.SafeString(ret_str);
+  }.property("num_enumerated"),
+  stackHTML: function() {
+    var ret_str = "<h2>Stack: ";
+    var removed_nodes = this.get("removed_nodes");
+    var last_removed = this.get("last_removed");
+    for(var i=0; i<removed_nodes.length; i++) {
+      ret_str += removed_nodes[i].toString();
+      ret_str += " ";
+    }
+    ret_str += "</h2>";
+    ret_str += "<h3> Last removed: ";
+    ret_str += last_removed.toString();
+    ret_str += "</h3>";
+    return new Handlebars.SafeString(ret_str);
+  }.property("num_enumerated", "last_removed"),
   stepReverseAlgorithm: function() {
     var removed_nodes = this.get("removed_nodes");    
     var reverse_stack = this.get("reverse_stack");
     var iter_start = this.get("last_removed") - 1;
     for(var i=iter_start; i>=0; i--) {
       removed_nodes.push(i);
-      if(this.isGraphConnected()) {
+      this.set("dfs_flag", this.get("dfs_flag") + 1);
+      if(this.isConnectedDFS()) {
         this.set("step_description", 
           "I have tried to remove nodes starting from " +
           iter_start.toString() +
@@ -109,7 +187,7 @@ App.ApplicationController = Ember.Controller.extend({
       step_description = "There were no more nodes to iterate from this state. ";
     }
     else {
-      "step_description" =
+      step_description =
         "I iterated all nodes from " +
         iter_start.toString() +
         " down to 0. Sadly, removal of each one disconnected the graph. ";
@@ -135,6 +213,7 @@ App.ApplicationController = Ember.Controller.extend({
   },
 
   stepAlgorithm : function() {
+    $("#step_button").popover('hide');	
     if(this.get("in_algorithm")) {
       if(this.get("isReverse")) {
         this.stepReverseAlgorithm();

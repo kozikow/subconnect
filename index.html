@@ -61,10 +61,10 @@
               <li {{bindAttr class="in_algorithm::active"}}>
                 <a href="#" {{action stopAlgorithm}} >Create graph</a>
               </li>
-              <li {{bindAttr class="in_algorithm:active graphNotEmpty::disabled"}}>
+              <li {{bindAttr class="in_algorithm:active canStartAlgorithm::disabled"}}>
                 <a href="#" {{action startAlgorithm}} >Start algorithm</a>
               </li>
-              <li {{bindAttr class="in_algorithm::disabled"}}>
+              <li {{bindAttr class="in_algorithm::disabled"}} id="step_button" data-title="Hint" data-content="Press this link to advance through algorithm">
                 <a href="#" {{action stepAlgorithm}}>Next step</a>
               </li>
             </ul>
@@ -108,13 +108,14 @@
               </div>
               <div class="tab-pane" id="tab4">
                 {{#if in_algorithm}}
-                  <p> Number of traversed subgraphs: {{num_enumerated}} </p>
+                  <h1> Number of traversed subgraphs: {{num_enumerated}} </h1>
                   {{#if isReverse}}
-                    State of Reverse
+                    {{stackHTML}}
                   {{/if}}
                   {{#if isSlyce}}
                     State of Slyce
                   {{/if}}
+                  {{ traversedHTML }}
                 {{else}}
                   You need to start the algorithm first!
                 {{/if}}

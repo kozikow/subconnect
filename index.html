@@ -74,7 +74,7 @@
           <div class="hero-unit">
             <h1>Graph</h1>
             {{#if in_algorithm}}
-              <p> Scroll down to analyze state of your algorithm. </p>
+              <h3> Scroll down to analyze state of your algorithm. </h3>
             {{else}}
               <h3> Press anywhere to add new nodes. Nodes placed closeby will be connected by an edge. </h3>		
 	      {{#if canStartAlgorithm}}
@@ -97,15 +97,15 @@
             <div class="tab-content">
               <div class="tab-pane active" id="tab1">
                 {{#if isReverse}}
-                  Description of Reverse
+                  <h4> Description of Reverse </h4>
                 {{/if}}
                 {{#if isSlyce}}
-                  Description of Slyce
+                  <h4> Description of Slyce </h4>
                 {{/if}}
               </div>
               <div class="tab-pane" id="tab3">
                 {{#if in_algorithm}}
-                  {{ step_description }}
+   		    <h4> {{ step_description }} </h4>
                 {{else}}
                   You need to start the algorithm first!
                 {{/if}}
@@ -117,15 +117,15 @@
                     {{stackHTML}}
                   {{/if}}
                   {{#if isSlyce}}
-                    State of Slyce
+                    <h4> State of Slyce </h4>
                   {{/if}}
                   {{ traversedHTML }}
                 {{else}}
-                  You need to start the algorithm first!
+                  <h4> You need to start the algorithm first! </h4>
                 {{/if}}
               </div>
               <div class="tab-pane" id="tab5">
-                Algorithms
+                <h4> Algorithms </h4>
               </div>
             </div>
           </div>

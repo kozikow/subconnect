@@ -54,7 +54,7 @@ App.ApplicationController = Ember.Controller.extend({
 	$("#step_button").popover('show');
 
         var num_nodes = this.get("num_nodes");
-        this.set("num_enumerated", 1);
+        this.set("num_enumerated", 0);
         this.set("traversed_subgraphs", [])
         this.addTraversedSubgraph();
         this.set("last_removed", num_nodes);

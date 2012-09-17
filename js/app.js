@@ -40,7 +40,7 @@ App.ApplicationController = Ember.Controller.extend({
     this.set("in_algorithm", false);
   },
   stepAlgorithm : function() {
-    if(in_algorithm) {
+    if(this.get("in_algorithm")) {
       alert('krok!');
     }
   },
@@ -52,8 +52,7 @@ App.ApplicationController = Ember.Controller.extend({
   },
 
   addNode : function(event) {
-    var in_algorithm = this.get("in_algorithm");
-    if(!in_algorithm) {
+    if(!this.get("in_algorithm")) {
       var nodes = this.get("nodes");
       var links = this.get("links");
       var point = d3.mouse(event);

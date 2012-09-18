@@ -27,7 +27,9 @@ App.ApplicationController = Ember.Controller.extend({
   last_removed: 0,
   num_enumerated : 0,
   unique_subgraph : true,
+  slyce_root : -1,
   dfs_flag : 0,
+  expansion_set_stack : [],
   traversed_subgraphs : [],
   isReverse : function() {
     return (this.get("algorithm") == "reverse")
@@ -53,14 +55,24 @@ App.ApplicationController = Ember.Controller.extend({
   startAlgorithm : function() {
     if(this.get("canStartAlgorithm")) {
       if(!this.get("in_algorithm")) {
-	$("#step_button").popover('show');
-
+        $("#step_button").popover('show');
         var num_nodes = this.get("num_nodes");
         this.set("num_enumerated", 0);
         this.set("traversed_subgraphs", [])
-        this.addTraversedSubgraph();
-        this.set("last_removed", num_nodes);
         this.set("in_algorithm", true);
+        if(this.get("algorithm") == "reverse") {
+          this.set("last_removed", num_nodes);
+          this.addTraversedSubgraph();
+        }
+        if(this.get("algorithm") == "slyce") {
+          this.set("slyce_root", -1);
+          this.set("expansion_set_stack", []);
+          var removed_nodes = [];
+          for(var i=0; i<num_nodes; i++) {
+            removed_nodes.push(i);
+          }
+          this.set("removed_nodes", removed_nodes);
+        }
       }
     }
   },
@@ -212,8 +224,86 @@ App.ApplicationController = Ember.Controller.extend({
     }
   },
 
+  addNeighbours: function(last_step_nodes) {
+    var num_nodes = this.get("num_nodes");
+    var removed_nodes = this.get("removed_nodes");
+    var links = this.get("links");
+    var slyce_root = this.get("slyce_root");
+    var new_expansion_set = [];
+    for(var i=slyce_root; i<num_nodes; i++) {
+      if($.inArray(i, removed_nodes) != -1) {
+        var is_neighbour_old = false;
+        var is_neighbour_new = false;
+        for(var j=0; j<links.length; j++) {
+          var x, y;
+          if(links[j].source.index == i) {
+            x = i;
+            y = links[j].target.index;
+          }
+          if(links[j].target.index == i) {
+            x = i;
+            y = links[j].source.index;
+          }
+          
+          if(x != y) {
+            if(($.inArray(y,last_step_nodes) != -1)) {
+              is_neighbour_old = true;
+            }
+            if(($.inArray(y,removed_nodes) == -1)) {
+              is_neighbour_new = true;
+            } 
+          }
+        }
+        if(is_neighbour_old==false && is_neighbour_new==true)
+          new_expansion_set.push(i);
+      }
+    }
+    var expansion_set_stack = this.get("expansion_set_stack");
+    expansion_set_stack.push(new_expansion_set);
+    this.set("expansion_set_stack", expansion_set_stack);
+  },
+
   stepSlyceAlgorithm: function() {
-    alert('slyce step!');
+    var taken_nodes = [];
+    var num_nodes = this.get("num_nodes");
+    var removed_nodes = this.get("removed_nodes");
+    //i know complexity is going to be crap, but who cares since every action need user click
+    for(var i=0; i<num_nodes; i++) {
+      if($.inArray(i, removed_nodes) == -1)
+        taken_nodes.push(i);
+    }
+    var slyce_root = this.get("slyce_root");
+    if(taken_nodes.length == 0) {
+      if(slyce_root == (num_nodes-1)) {
+        this.set("step_description", "Algorithm have finished.");
+      }
+      else {
+        var message = "Before this step subgraph was empty.";
+        if(slyce_root == -1) {
+          message += "We are starting the algorithm and setting a root to be 0."
+          slyce_root = 0;
+        }
+        else {
+          message += "Last root was " + slyce_root.toString() + ". ";
+          slyce_root += 1;
+          message += "We are setting " + slyce_root.toString() + " as a new root.";
+        }
+        removed_nodes.splice( $.inArray(slyce_root, removed_nodes), 1 );
+        this.set("slyce_root", slyce_root);
+        this.set("removed_nodes", removed_nodes);
+        this.addNeighbours([]);
+        message += "I have added nodes, which are neighbours of a root, but have index higher than root as ";
+        message += " a candidate expansion set.";
+        message += " We have added following set as expansion set: ";
+        var expansion_set_stack = this.get("expansion_set_stack");
+        message += JSON.stringify(expansion_set_stack.last());
+        this.set("step_description", message);
+        this.addTraversedSubgraph();
+      }
+    }
+    else {
+      alert('juz cos mam :D!');
+    }
   },
 
   stepAlgorithm : function() {
@@ -235,7 +325,7 @@ App.ApplicationController = Ember.Controller.extend({
   },
   chooseAlgorithmSlyce: function() {
     this.set("algorithm", "slyce");
-    this.set("step_description", "We have started the SlyCE algorithm.");
+    this.set("step_description", "We have started the SlyCE algorithm. We didn't select any nodes yet.");
   },
 
   addNode : function(event) {
@@ -263,6 +353,10 @@ App.ApplicationController = Ember.Controller.extend({
   forceTick : function() {
     var vis = this.get("vis");
     var removed_nodes = this.get("removed_nodes");
+    var color = "#000";
+    if(this.get("unique_subgraph")) {
+       color = "#1464F4";
+    } 
     vis.selectAll("line.link")
         .attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
@@ -278,7 +372,9 @@ App.ApplicationController = Ember.Controller.extend({
           else {
             return 5;
           }
-        });
+        })
+        .style("stroke", color)
+        .style("stroke-opacity", 0.5);
 
     vis.selectAll("text.node")
       .attr("x", function(d) { return d.x - 5; })
@@ -292,23 +388,20 @@ App.ApplicationController = Ember.Controller.extend({
         }
        });
 
-    var node_color = "#000";
-    if(this.get("unique_subgraph")) {
-       node_color = "#00B2EE";
-    } 
+    
 
     vis.selectAll("circle.node")
       .attr("cx", function(d) { return d.x; })
       .attr("cy", function(d) { return d.y; })
       .style("fill-opacity", function(d,i) {
         if($.inArray(i, removed_nodes) != -1) {
-          return 0.1;
+          return 0.2;
         }
         else {
-          return 0.4;
+          return 0.5;
         }
        })
-      .style("fill", node_color)
+      .style("fill", color)
   }.observes("step_description", "in_algorithm"),
 
   redrawGraph : function() {

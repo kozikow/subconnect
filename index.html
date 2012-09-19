@@ -75,9 +75,12 @@
             <h1>Graph</h1>
             {{#if in_algorithm}}
               <h3> Scroll down to analyze state of your algorithm. </h3>
-	      {{#if isReverse}}
-		<h3> New subgraphs will be colored in blue </h3>
-	      {{/if}}
+	             {{#if isReverse}}
+		              <h4> New subgraphs will be colored in blue. Return steps of recurrence will be colored in gray.</h4>
+	             {{/if}}
+               {{#if isSlyce}}
+                  <h4> Candidates for expansion will be colored in red </h4>
+               {{/if}}
             {{else}}
               <h3> Press anywhere to add new nodes. Nodes placed closeby will be connected by an edge. </h3>		
 	      {{#if canStartAlgorithm}}
@@ -120,7 +123,7 @@
                     {{stackHTML}}
                   {{/if}}
                   {{#if isSlyce}}
-                    <h4> State of Slyce </h4>
+                    {{slyceStateHTML}}
                   {{/if}}
                   {{ traversedHTML }}
                 {{else}}

@@ -29,7 +29,9 @@ App.ApplicationController = Ember.Controller.extend({
   unique_subgraph : true,
   slyce_root : -1,
   dfs_flag : 0,
+  slyce_step_number : 0,
   expansion_set_stack : [],
+  last_taken_stack : [],
   traversed_subgraphs : [],
   isReverse : function() {
     return (this.get("algorithm") == "reverse")
@@ -49,6 +51,8 @@ App.ApplicationController = Ember.Controller.extend({
     this.set("removed_nodes", []);
     this.set("in_algorithm", false);
     this.set("unique_subgraph", true);
+    this.set("expansion_set_stack", []);
+    this.set("last_taken_stack", [])
     $("#step_button").popover('hide');
   }.observes("algorithm"),
 
@@ -67,11 +71,11 @@ App.ApplicationController = Ember.Controller.extend({
         if(this.get("algorithm") == "slyce") {
           this.set("slyce_root", -1);
           this.set("expansion_set_stack", []);
-          var removed_nodes = [];
+          this.set("slyce_step_number", 0);
+
           for(var i=0; i<num_nodes; i++) {
-            removed_nodes.push(i);
+            this.removeFromGraph(i);
           }
-          this.set("removed_nodes", removed_nodes);
         }
       }
     }
@@ -79,9 +83,26 @@ App.ApplicationController = Ember.Controller.extend({
   stopAlgorithm : function() {
     this.resetAlgorithm();
   },
+
+  addToGraph: function(node) {
+    var removed_nodes = this.get("removed_nodes");
+    removed_nodes.splice( $.inArray(node, removed_nodes), 1 );
+    this.set("removed_nodes", removed_nodes);
+  },
+
+  removeFromGraph: function(node) {
+    var removed_nodes = this.get("removed_nodes");
+    removed_nodes.push(node);
+    this.set("removed_nodes", removed_nodes);
+  },
+
+  isRemoved: function(node) {
+    var removed_nodes = this.get("removed_nodes");
+    return ($.inArray(node, removed_nodes) != -1);
+  },
+
   isConnectedDFS: function() {
     var num_nodes = this.get("num_nodes");
-    var removed_nodes = this.get("removed_nodes");
     var links = this.get("links");
     var num_set = [];
 
@@ -94,7 +115,7 @@ App.ApplicationController = Ember.Controller.extend({
       for(var j=0; j<links.length; j++) {
         var source = links[j].source.index;
         var target = links[j].target.index;
-        if($.inArray(source, removed_nodes)==-1 && $.inArray(target, removed_nodes)==-1) {
+        if(!this.isRemoved(source) && !this.isRemoved(target)) {
           num_set[source] = num_set[source] < num_set[target] ? num_set[source] : num_set[target];
           num_set[target] = num_set[source];
           min_found = min_found < num_set[target] ? min_found : num_set[target];
@@ -102,7 +123,7 @@ App.ApplicationController = Ember.Controller.extend({
       }
     }
     for(var i=0; i<num_nodes; i++) {
-      if($.inArray(i, removed_nodes) == -1) {
+      if(!this.isRemoved(i)) {
         if(num_set[i] != min_found) {
           return false;
         }
@@ -169,6 +190,31 @@ App.ApplicationController = Ember.Controller.extend({
     ret_str += "</h3>";
     return new Handlebars.SafeString(ret_str);
   }.property("num_enumerated", "last_removed"),
+
+  slyceStateHTML: function() {
+    var ret_str = "<h2>Slyce Root: " + this.get("slyce_root").toString() + "</h2>";
+    ret_str += "<h2>Expansion Set Stack:</h2>";
+    var expansion_set_stack = this.get("expansion_set_stack");
+    var last_taken_stack = this.get("last_taken_stack");
+    
+    for(var i=0; i<expansion_set_stack.length; i++) {
+      var expansion = expansion_set_stack[i];
+      ret_str += "<h4>" + JSON.stringify(expansion) + "</h4>";
+    }
+    ret_str += "<h2>Last taken stack:</h2>";
+    for(var i=0; i<last_taken_stack.length; i++) {
+      expansion = expansion_set_stack[i];
+      last_taken = last_taken_stack[i];
+      ret_str += "<h4>[";
+      for(var j=0; j<last_taken.length; j++) {
+        ret_str += expansion[last_taken[j]];
+        if(j+1!=last_taken.length) + ",";
+      }
+      ret_str += "]</h4>";
+    }
+    return new Handlebars.SafeString(ret_str);
+  }.property("num_enumerated", "slyce_step_number"),
+
   stepReverseAlgorithm: function() {
     var removed_nodes = this.get("removed_nodes");    
     var reverse_stack = this.get("reverse_stack");
@@ -190,7 +236,7 @@ App.ApplicationController = Ember.Controller.extend({
         this.addTraversedSubgraph();
         this.set("last_removed", i)
         this.set("removed_nodes", removed_nodes);
-	this.set("unique_subgraph", true);
+	      this.set("unique_subgraph", true);
         return;
       }
       else {
@@ -224,86 +270,214 @@ App.ApplicationController = Ember.Controller.extend({
     }
   },
 
-  addNeighbours: function(last_step_nodes) {
+  addNeighbours: function(last_removed_nodes) {
     var num_nodes = this.get("num_nodes");
-    var removed_nodes = this.get("removed_nodes");
     var links = this.get("links");
     var slyce_root = this.get("slyce_root");
     var new_expansion_set = [];
+    var is_neighbour_old;
+    var is_neighbour_new;
     for(var i=slyce_root; i<num_nodes; i++) {
-      if($.inArray(i, removed_nodes) != -1) {
-        var is_neighbour_old = false;
-        var is_neighbour_new = false;
+      if(this.isRemoved(i)) {
+        is_neighbour_old = false;
+        is_neighbour_new = false;
+        var neighour_link;
         for(var j=0; j<links.length; j++) {
           var x, y;
+          var ok_edge = false;
           if(links[j].source.index == i) {
             x = i;
             y = links[j].target.index;
+            ok_edge = true;
           }
           if(links[j].target.index == i) {
             x = i;
             y = links[j].source.index;
+            ok_edge = true;
           }
           
-          if(x != y) {
-            if(($.inArray(y,last_step_nodes) != -1)) {
+          if(ok_edge && x != y) {
+            if($.inArray(y, last_removed_nodes) == -1) {
               is_neighbour_old = true;
             }
-            if(($.inArray(y,removed_nodes) == -1)) {
+            if(!this.isRemoved(y)) {
+              neighour_link = links[j];
               is_neighbour_new = true;
             } 
           }
         }
-        if(is_neighbour_old==false && is_neighbour_new==true)
+        if( (is_neighbour_old==false) && (is_neighbour_new==true) ) {
           new_expansion_set.push(i);
+        }
       }
     }
     var expansion_set_stack = this.get("expansion_set_stack");
     expansion_set_stack.push(new_expansion_set);
     this.set("expansion_set_stack", expansion_set_stack);
+    var last_taken_stack = this.get("last_taken_stack");
+    last_taken_stack.push([]);
+    this.set("last_taken_stack", last_taken_stack);
+  },
+
+  selectNextSlyceRoot: function() {
+    var slyce_root = this.get("slyce_root");
+    var num_nodes = this.get("num_nodes");
+    var removed_nodes = this.get("removed_nodes");
+    var expansion_set_stack = this.get("expansion_set_stack");
+    var last_taken_stack = this.get("last_taken_stack");
+    if(slyce_root == (num_nodes-1)) {
+        this.set("step_description", "Algorithm have finished.");
+    }
+    else {
+      var message = "Before this step subgraph was empty.";
+      if(slyce_root == -1) {
+        message += "We are starting the algorithm and setting a root to be 0.";
+        slyce_root = 0;
+      }
+      else {
+        message += "Last root was " + slyce_root.toString() + ". ";
+        slyce_root += 1;
+        message += "We are setting " + slyce_root.toString() + " as a new root.";
+      }
+      var last_removed_nodes = [];
+      for(var i=0; i<removed_nodes.length; i++) {
+        last_removed_nodes.push(removed_nodes[i]);
+      }
+      this.addToGraph(slyce_root);
+      last_taken_stack.push([0]);
+      expansion_set_stack.push([slyce_root]);
+      this.set("slyce_root", slyce_root);
+
+      
+      this.set("last_taken_stack", last_taken_stack);
+      this.set("expansion_set_stack", expansion_set_stack);
+      this.addNeighbours(last_removed_nodes);
+      
+      
+      message += "Expansion set is set of nodes, which are neighbours of a root, but have index higher than root. "
+      message += "Expansion set: ";
+        
+      message += JSON.stringify(expansion_set_stack.last());
+      this.set("step_description", message);
+
+    }
+  },
+  tryRevertRoot: function() {
+    last_taken_stack = this.get("last_taken_stack");
+    expansion_set_stack = this.get("expansion_set_stack");
+    if(expansion_set_stack.length == 1) {
+      this.set("expansion_set_stack", []);
+      this.set("last_taken_stack", []);
+    }
+  },
+
+  revertLastExpansion: function() {
+    var message = "There are no more nodes to expand. We are reverting last expansion. We are removing from graph: ";
+    var last_taken_stack = this.get("last_taken_stack");
+    var expansion_set_stack = this.get("expansion_set_stack");
+    expansion_set_stack.pop();
+    var last_taken = last_taken_stack.last();
+    var last_expansion = expansion_set_stack.last();
+    last_taken_stack.pop();
+    var previous_taken = last_taken_stack.last();
+    var previous_expansion = expansion_set_stack.last();
+    for(var i=0; i<previous_taken.length; i++) {
+      var reverted = previous_expansion[previous_taken[i]];
+      this.removeFromGraph(reverted);
+      message += reverted.toString();
+    }
+    message += ".";
+    this.set("step_description", message);
+    this.set("last_taken_stack",last_taken_stack);
+    this.set("expansion_set_stack", expansion_set_stack);
+    this.tryRevertRoot();
+  },
+
+  selectNextSubset: function() {
+    var last_taken_stack = this.get("last_taken_stack");
+    var expansion_set_stack = this.get("expansion_set_stack");
+    var removed_nodes = this.get("removed_nodes");
+    var last_taken = last_taken_stack.last();
+    var last_expansion = expansion_set_stack.last();
+
+    var message = "";
+    message += "Expansion set is: " + JSON.stringify(last_expansion);
+    message += ". Set, which we last expanded for this candidate set: ";
+    for(var i=0; i<last_taken.length; i++) {
+      message += last_expansion[last_taken[i]].toString();
+      message += " ";
+    }
+    message += ". We are selecting next lexographicaly subset. "
+    if(last_taken.length == 0) {
+      last_taken.push(0);
+      message += "We are getting first node for this expansion set. "
+    }
+    else {
+      if(last_taken.last() == (last_expansion.length-1)) {
+        last_taken.pop();
+        last_taken[last_taken.length-1] += 1;
+      }
+      else {
+        last_taken.push(last_taken.last()+1);
+      }
+      message += "We have taken next lecographixaly subset of expansion set."
+    }
+    message += ". This step subset is: ";
+
+    var last_removed_nodes = [];
+    for(var i=0; i<removed_nodes.length; i++) {
+      last_removed_nodes.push(removed_nodes[i]);
+    }
+
+    for(var i=0; i<last_taken.length; i++) {
+      var added_node = last_expansion[last_taken[i]];
+      message += added_node.toString();
+      this.addToGraph(added_node);
+    }
+
+    last_taken_stack[last_taken_stack.length-1] = last_taken;
+    this.set("last_taken_stack", last_taken_stack);
+    this.addNeighbours(last_removed_nodes);
+    
+    this.set("step_description", message);
+  },
+
+  tryExpandSubset: function() {
+    var last_taken_stack = this.get("last_taken_stack");
+    var expansion_set_stack = this.get("expansion_set_stack");
+    var last_taken = last_taken_stack.last();
+    var last_expansion = expansion_set_stack.last();
+    var message = "";
+    if(last_expansion.length == 0) {
+      this.revertLastExpansion();
+    }
+    else {
+      if((last_taken.length == 1) && (last_taken.last()+1 == last_expansion.length) ) {
+        this.revertLastExpansion();
+      }
+      else {
+        this.selectNextSubset();
+        this.addTraversedSubgraph();
+      }
+    }
   },
 
   stepSlyceAlgorithm: function() {
     var taken_nodes = [];
     var num_nodes = this.get("num_nodes");
     var removed_nodes = this.get("removed_nodes");
-    //i know complexity is going to be crap, but who cares since every action need user click
     for(var i=0; i<num_nodes; i++) {
-      if($.inArray(i, removed_nodes) == -1)
+      if(!this.isRemoved(i))
         taken_nodes.push(i);
     }
-    var slyce_root = this.get("slyce_root");
     if(taken_nodes.length == 0) {
-      if(slyce_root == (num_nodes-1)) {
-        this.set("step_description", "Algorithm have finished.");
-      }
-      else {
-        var message = "Before this step subgraph was empty.";
-        if(slyce_root == -1) {
-          message += "We are starting the algorithm and setting a root to be 0."
-          slyce_root = 0;
-        }
-        else {
-          message += "Last root was " + slyce_root.toString() + ". ";
-          slyce_root += 1;
-          message += "We are setting " + slyce_root.toString() + " as a new root.";
-        }
-        removed_nodes.splice( $.inArray(slyce_root, removed_nodes), 1 );
-        this.set("slyce_root", slyce_root);
-        this.set("removed_nodes", removed_nodes);
-        this.addNeighbours([]);
-        message += "I have added nodes, which are neighbours of a root, but have index higher than root as ";
-        message += " a candidate expansion set.";
-        message += " We have added following set as expansion set: ";
-        var expansion_set_stack = this.get("expansion_set_stack");
-        message += JSON.stringify(expansion_set_stack.last());
-        this.set("step_description", message);
-        this.addTraversedSubgraph();
-      }
+      this.selectNextSlyceRoot();
+      this.addTraversedSubgraph();
     }
     else {
-      alert('juz cos mam :D!');
+      this.tryExpandSubset();
     }
+    this.set("slyce_step_number", this.get("slyce_step_number")+1);
   },
 
   stepAlgorithm : function() {
@@ -352,21 +526,22 @@ App.ApplicationController = Ember.Controller.extend({
 
   forceTick : function() {
     var vis = this.get("vis");
-    var removed_nodes = this.get("removed_nodes");
     var color = "#000";
     if(this.get("unique_subgraph")) {
        color = "#1464F4";
-    } 
+    }
+    var expansion_color="#FF0000";
+    var self = this;
     vis.selectAll("line.link")
         .attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
         .attr("x2", function(d) { return d.target.x; })
         .attr("y2", function(d) { return d.target.y; })
         .style("stroke-width", function(d, i) {
-          if( ($.inArray(d.source.index, removed_nodes) != -1) ) {
+          if( self.isRemoved(d.source.index) ) {
             return 1;
           }
-          if( ($.inArray(d.target.index, removed_nodes) != -1) ) {
+          if( self.isRemoved(d.target.index) ) {
             return 1;
           }
           else {
@@ -380,7 +555,7 @@ App.ApplicationController = Ember.Controller.extend({
       .attr("x", function(d) { return d.x - 5; })
       .attr("y", function(d) { return d.y + 5; })
       .style("fill-opacity", function(d,i) {
-        if($.inArray(i, removed_nodes) != -1) {
+        if(self.isRemoved(i)) {
           return 0.2;
         }
         else {
@@ -389,20 +564,28 @@ App.ApplicationController = Ember.Controller.extend({
        });
 
     
-
+    var expansion_set_stack = this.get("expansion_set_stack");
+    var expansion_set = expansion_set_stack.last();
     vis.selectAll("circle.node")
       .attr("cx", function(d) { return d.x; })
       .attr("cy", function(d) { return d.y; })
       .style("fill-opacity", function(d,i) {
-        if($.inArray(i, removed_nodes) != -1) {
+        if(self.isRemoved(i)) {
           return 0.2;
         }
         else {
           return 0.5;
         }
        })
-      .style("fill", color)
-  }.observes("step_description", "in_algorithm"),
+      .style("fill", function(d,i) {
+        if($.inArray(i, expansion_set) != -1) {
+          return expansion_color;
+        }
+        else {
+          return color;
+        }
+      })
+  }.observes("step_description", "in_algorithm", "slyce_step_number"),
 
   redrawGraph : function() {
     var force = this.get("force");

@@ -98,22 +98,26 @@
               <li class="active"><a href="#tab1" data-toggle="tab">Algorithm Description</a></li>
               <li><a href="#tab3" data-toggle="tab">Description of current step</a></li>
               <li><a href="#tab4" data-toggle="tab">Current State</a></li>
-              <li><a href="#tab5" data-toggle="tab">Comparision between algorithms</a></li>
             </ul> 
             <div class="tab-content">
               <div class="tab-pane active" id="tab1">
                 {{#if isReverse}}
-                  <h4> Description of Reverse </h4>
+                  <h4> You can find description <a href="cgm.cs.mcgill.ca/~avis/doc/avis/AF96a.pdf"> in this article</a>.
+                  </h4>
+                  <h4>
+                    BTW. I found that this algorithm is not working. Try subgraph consisting of edges: (0,3), (2,3), (0,2), (1,2). Then subgraph [0,3] is not included in enumerated output.
+                    I did not delete it, since I already implemented it :P.
+                  </h4>
                 {{/if}}
                 {{#if isSlyce}}
-                  <h4> Description of Slyce </h4>
+                  <h4> You can find description <a href="http://eprints.soton.ac.uk/273083/"> in this article </a>. </h4>
                 {{/if}}
               </div>
               <div class="tab-pane" id="tab3">
                 {{#if in_algorithm}}
    		    <h4> {{ step_description }} </h4>
                 {{else}}
-                  You need to start the algorithm first!
+                  <h4> You need to start the algorithm first! </h4> 
                 {{/if}}
               </div>
               <div class="tab-pane" id="tab4">
@@ -129,9 +133,6 @@
                 {{else}}
                   <h4> You need to start the algorithm first! </h4>
                 {{/if}}
-              </div>
-              <div class="tab-pane" id="tab5">
-                <h4> Algorithms </h4>
               </div>
             </div>
           </div>

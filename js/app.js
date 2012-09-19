@@ -71,7 +71,7 @@ App.ApplicationController = Ember.Controller.extend({
         if(this.get("algorithm") == "slyce") {
           this.set("slyce_root", -1);
           this.set("expansion_set_stack", []);
-          this.set("slyce_step_number", 0);
+          this.set("slyce_step_number", 1);
 
           for(var i=0; i<num_nodes; i++) {
             this.removeFromGraph(i);
@@ -208,7 +208,8 @@ App.ApplicationController = Ember.Controller.extend({
       ret_str += "<h4>[";
       for(var j=0; j<last_taken.length; j++) {
         ret_str += expansion[last_taken[j]];
-        if(j+1!=last_taken.length) + ",";
+        if(j+1 != last_taken.length)
+          ret_str += ",";
       }
       ret_str += "]</h4>";
     }
